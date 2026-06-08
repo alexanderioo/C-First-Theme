@@ -7,6 +7,7 @@ public sealed class ConsoleApplication
     private readonly DictionaryRepository _dictionaryRepository;
     private readonly SettingsRepository _settingsRepository;
     private readonly StatisticsRepository _statisticsRepository;
+    private readonly DictionaryMenu _dictionaryMenu;
 
     public ConsoleApplication(
         DictionaryRepository dictionaryRepository,
@@ -16,6 +17,7 @@ public sealed class ConsoleApplication
         _dictionaryRepository = dictionaryRepository;
         _settingsRepository = settingsRepository;
         _statisticsRepository = statisticsRepository;
+        _dictionaryMenu = new DictionaryMenu(dictionaryRepository);
     }
 
     public async Task RunAsync()
@@ -43,7 +45,7 @@ public sealed class ConsoleApplication
                     await ShowComingSoonAsync("Тренировка");
                     break;
                 case 2:
-                    await ShowComingSoonAsync("Словари");
+                    await _dictionaryMenu.ShowAsync();
                     break;
                 case 3:
                     await ShowComingSoonAsync("Статистика");

@@ -41,6 +41,13 @@ public static class ConsoleInput
         }
     }
 
+    public static string ReadOptional(string prompt, string currentValue)
+    {
+        Console.Write($"{prompt} [{currentValue}]: ");
+        string? value = Console.ReadLine();
+        return string.IsNullOrWhiteSpace(value) ? currentValue : value.Trim();
+    }
+
     public static bool Confirm(string prompt)
     {
         Console.Write($"{prompt} [д/Н]: ");
