@@ -1,10 +1,12 @@
 using TypingTrainer.Components;
+using TypingTrainer.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
     .AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddSingleton<DictionaryRepository>();
 
 var app = builder.Build();
 

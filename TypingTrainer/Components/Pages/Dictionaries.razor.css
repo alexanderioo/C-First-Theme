@@ -1,0 +1,142 @@
+.page-heading {
+    margin-bottom: 38px;
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.page-heading h1 {
+    margin: 10px 0 8px;
+    font-size: clamp(2.4rem, 5vw, 4.4rem);
+    line-height: 1;
+    letter-spacing: -0.065em;
+}
+
+.page-heading p {
+    margin: 0;
+    color: var(--muted);
+}
+
+.dictionary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.dictionary-card {
+    min-height: 310px;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.dictionary-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 22px 55px rgba(32, 36, 45, 0.1);
+}
+
+.card-topline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.kind-badge,
+.built-in-badge {
+    padding: 6px 9px;
+    border-radius: 7px;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.kind-badge {
+    color: var(--accent-strong);
+    background: var(--accent-soft);
+}
+
+.built-in-badge {
+    color: var(--muted);
+    background: var(--surface-soft);
+}
+
+.dictionary-card h2 {
+    margin: 24px 0 10px;
+    font-size: 1.55rem;
+    letter-spacing: -0.04em;
+}
+
+.dictionary-card p {
+    max-width: 520px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.65;
+}
+
+.dictionary-meta {
+    margin-top: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.dictionary-meta span {
+    padding: 7px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.dictionary-actions {
+    margin-top: auto;
+    padding-top: 28px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.dictionary-actions .button {
+    min-height: 42px;
+}
+
+.edit-link {
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.edit-link:hover {
+    color: var(--ink);
+}
+
+.loading-card {
+    min-height: 260px;
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+}
+
+@media (max-width: 780px) {
+    .page-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .dictionary-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 460px) {
+    .dictionary-card {
+        min-height: 330px;
+        padding: 24px;
+    }
+}
