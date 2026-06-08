@@ -1,6 +1,8 @@
 @page "/dictionaries"
 @inject DictionaryRepository Repository
 
+@* @inject просит контейнер зависимостей передать готовый репозиторий.
+   Страница не создаёт его вручную и не работает с JSON напрямую. *@
 <PageTitle>Словари — Клавиши</PageTitle>
 
 <section class="page-heading">
@@ -17,6 +19,7 @@
 
 @if (_dictionaries is null)
 {
+    @* null здесь означает, что асинхронная загрузка ещё не завершилась. *@
     <div class="loading-card page-card">Загружаем словари...</div>
 }
 else
@@ -56,9 +59,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        // Метод жизненного цикла вызывается при первом создании компонента.
         _dictionaries = await Repository.GetAllAsync();
     }
 
+    // switch expression возвращает подпись для каждого значения enum.
     private static string GetKindName(DictionaryKind kind) => kind switch
     {
         DictionaryKind.Words => "Слова",
@@ -70,6 +75,8 @@ else
 
     private static string GetTextWord(int count)
     {
+        // В русском языке окончание зависит от последних цифр:
+        // 1 текст, 2 текста, 5 текстов, но 11–14 всегда "текстов".
         int lastTwoDigits = count % 100;
         int lastDigit = count % 10;
 

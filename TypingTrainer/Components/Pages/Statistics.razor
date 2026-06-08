@@ -1,6 +1,8 @@
 @page "/statistics"
 @inject StatisticsRepository Repository
 
+@* Страница получает сырые заезды и строит из них несколько представлений:
+   общую сводку, график, группы по словарям и таблицу истории. *@
 <PageTitle>Статистика — Клавиши</PageTitle>
 
 <section class="statistics-heading">
@@ -79,6 +81,8 @@ else
             <div class="bar-chart">
                 @foreach (RaceResult result in _chartResults)
                 {
+                    @* Высота столбца — процент от максимальной скорости среди
+                       показанных результатов. Минимум 8% оставляет столбец видимым. *@
                     double height = Math.Max(8, result.CharactersPerMinute * 100.0 / _chartMaximum);
                     <div class="bar-column" title="@($"{result.CharactersPerMinute} зн/мин · {result.DictionaryName}")">
                         <strong>@result.CharactersPerMinute</strong>
@@ -185,18 +189,28 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        // Статистика загружается один раз при открытии страницы.
         await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
         _isLoading = true;
+
+        // Сначала новые результаты: этот порядок нужен таблице истории.
         _results = (await Repository.GetAllAsync())
             .OrderByDescending(result => result.CompletedAt)
             .ToList();
+
+        // Расчёты вынесены в модели, чтобы Razor отвечал только за отображение.
         _summary = StatisticsSummary.From(_results);
         _dictionaryStatistics = DictionaryStatistics.From(_results);
+
+        // Для графика берём 10 новых заездов и разворачиваем обратно,
+        // чтобы время шло слева направо от старого результата к новому.
         _chartResults = _results.Take(10).Reverse().ToList();
+
+        // Максимум нужен как масштаб 100% для высоты столбцов.
         _chartMaximum = Math.Max(1, _chartResults.Select(result => result.CharactersPerMinute).DefaultIfEmpty(1).Max());
         _isLoading = false;
     }
@@ -215,6 +229,7 @@ else
 
     private string GetProfileTitle()
     {
+        // Pattern matching со сравнением выбирает подпись по диапазону точности.
         return _summary.AverageAccuracy switch
         {
             >= 98 => "Точный набор",

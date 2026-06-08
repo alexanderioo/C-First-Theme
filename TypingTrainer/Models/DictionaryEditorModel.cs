@@ -2,6 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace TypingTrainer.Models;
 
+// Отдельная модель формы нужна потому, что textarea хранит все задания одной
+// строкой, а рабочая модель TypingDictionary использует список строк.
 public sealed class DictionaryEditorModel
 {
     public Guid? Id { get; set; }
@@ -29,8 +31,11 @@ public sealed class DictionaryEditorModel
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    // Преобразуем данные формы в модель, которую можно сохранить в JSON.
     public TypingDictionary ToDictionary()
     {
+        // Каждая непустая строка становится отдельным заданием.
+        // TrimEntries убирает пробелы по краям, Distinct — точные дубликаты.
         List<string> entries = EntriesText
             .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Where(entry => entry.Length >= 2)
@@ -51,6 +56,7 @@ public sealed class DictionaryEditorModel
         };
     }
 
+    // Обратное преобразование заполняет форму данными существующего словаря.
     public static DictionaryEditorModel From(TypingDictionary dictionary)
     {
         return new DictionaryEditorModel

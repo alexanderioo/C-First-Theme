@@ -3,6 +3,8 @@
 @inject DictionaryRepository Repository
 @inject NavigationManager Navigation
 
+@* Один компонент обслуживает два URL. Если Id отсутствует — создаём словарь,
+   если присутствует — загружаем существующий для редактирования. *@
 <PageTitle>@(_isNew ? "Новый словарь" : "Редактирование словаря") — Клавиши</PageTitle>
 
 <section class="editor-layout">
@@ -32,6 +34,8 @@
         }
         else
         {
+            @* EditForm связывает поля с _model. OnValidSubmit сработает только
+               после успешной проверки атрибутов [Required], [StringLength]. *@
             <EditForm Model="_model" OnValidSubmit="SaveAsync">
                 <DataAnnotationsValidator />
 
@@ -109,6 +113,7 @@
 
 @code {
     [Parameter]
+    // Значение приходит из сегмента {Id:guid} текущего URL.
     public Guid? Id { get; set; }
 
     private DictionaryEditorModel _model = new();
@@ -120,12 +125,15 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        // В отличие от OnInitializedAsync этот метод вызывается снова,
+        // если пользователь остаётся в компоненте, но меняется параметр URL.
         _isLoading = true;
         _notFound = false;
         _message = null;
 
         if (Id is Guid id)
         {
+            // Pattern matching одновременно проверяет null и создаёт Guid id.
             TypingDictionary? dictionary = await Repository.GetByIdAsync(id);
             if (dictionary is null)
             {
@@ -151,6 +159,7 @@
 
         try
         {
+            // Модель формы превращает многострочный textarea в список заданий.
             TypingDictionary dictionary = _model.ToDictionary();
             if (dictionary.Entries.Count == 0)
             {
@@ -159,6 +168,8 @@
             }
 
             await Repository.SaveAsync(dictionary);
+
+            // После сохранения программно возвращаем пользователя к списку.
             Navigation.NavigateTo("/dictionaries");
         }
         catch (IOException exception)
@@ -178,6 +189,7 @@
             return;
         }
 
+        // Репозиторий сам проверяет, разрешено ли удаление этого словаря.
         bool deleted = await Repository.DeleteAsync(id);
         if (deleted)
         {

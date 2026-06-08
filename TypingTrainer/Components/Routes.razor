@@ -1,9 +1,12 @@
 <Router AppAssembly="typeof(Program).Assembly">
+    @* Router сканирует сборку приложения и ищет компоненты с директивой @page. *@
     <Found Context="routeData">
+        @* Все найденные страницы отображаются внутри общего MainLayout. *@
         <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
     <NotFound>
+        @* Эта ветка показывается, когда ни один шаблон @page не совпал с URL. *@
         <LayoutView Layout="typeof(Layout.MainLayout)">
             <section class="empty-state page-card">
                 <span class="eyebrow">Ошибка 404</span>

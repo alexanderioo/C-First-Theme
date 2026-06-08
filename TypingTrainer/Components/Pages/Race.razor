@@ -4,16 +4,20 @@
 @inject SettingsRepository SettingsRepository
 @inject StatisticsRepository StatisticsRepository
 
+@* DictionaryId берётся из URL /race/{DictionaryId}. Компонент работает как
+   небольшая машина состояний: загрузка → подготовка → заезд → результат. *@
 <PageTitle>@(_dictionary is null ? "Заезд" : _dictionary.Name) — Клавиши</PageTitle>
 
 @if (_isLoading)
 {
+    @* Первое состояние: словарь и настройки ещё читаются из JSON. *@
     <section class="empty-state page-card">
         <p>Готовим заезд...</p>
     </section>
 }
 else if (_dictionary is null)
 {
+    @* Второе состояние: адрес содержит неизвестный Guid словаря. *@
     <section class="empty-state page-card">
         <span class="eyebrow">Словарь не найден</span>
         <h1>Не удалось начать заезд</h1>
@@ -22,6 +26,7 @@ else if (_dictionary is null)
 }
 else if (_result is not null)
 {
+    @* Четвёртое состояние: результат рассчитан и заезд завершён. *@
     <section class="result-screen">
         <div class="result-heading">
             <span class="eyebrow">Заезд завершён</span>
@@ -63,6 +68,7 @@ else if (_result is not null)
 }
 else
 {
+    @* Третье состояние: подготовка или активный набор текста. *@
     <section class="race-shell">
         <div class="race-topline">
             <div>
@@ -92,6 +98,8 @@ else
             else
             {
                 <div class="target-text" aria-label="Текст для набора">
+                    @* Каждый символ получает отдельный CSS-класс. Благодаря
+                       этому верный, ошибочный и текущий символ имеют свой цвет. *@
                     @for (int index = 0; index < _targetText.Length; index++)
                     {
                         char character = _targetText[index];
@@ -99,6 +107,9 @@ else
                     }
                 </div>
 
+                @* Настоящий ввод происходит в почти невидимый textarea.
+                   @ref сохраняет ссылку на DOM-элемент, чтобы поставить фокус.
+                   Визуально введённый текст показывают span выше. *@
                 <textarea @ref="_typingInput"
                           class="typing-input"
                           value="@_typedText"
@@ -150,11 +161,13 @@ else
 
 @code {
     [Parameter]
+    // Blazor преобразует строку из URL в Guid благодаря ограничению :guid.
     public Guid DictionaryId { get; set; }
 
     private TypingDictionary? _dictionary;
     private UserSettings _settings = UserSettings.Default;
     private ElementReference _typingInput;
+    // PeriodicTimer обновляет видимое время каждые 100 мс.
     private PeriodicTimer? _timer;
     private CancellationTokenSource? _timerCancellation;
     private string _targetText = string.Empty;
@@ -187,6 +200,7 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
+        // При открытии другого /race/{id} компонент загружает новый словарь.
         _isLoading = true;
         _dictionary = await DictionaryRepository.GetByIdAsync(DictionaryId);
         _settings = await SettingsRepository.GetAsync();
@@ -201,6 +215,7 @@ else
 
     private async Task StartRaceAsync()
     {
+        // Полностью сбрасываем состояние предыдущей попытки.
         _typedText = string.Empty;
         _mistakes = 0;
         _keyPresses = 0;
@@ -211,6 +226,7 @@ else
         _startedAt = DateTime.UtcNow;
         StartTimer();
 
+        // Сначала просим Blazor нарисовать textarea, затем ставим на него фокус.
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
         await FocusInputAsync();
@@ -224,12 +240,17 @@ else
 
     private async Task HandleInput(ChangeEventArgs eventArgs)
     {
+        // @oninput вызывается после каждого изменения textarea, в отличие
+        // от @onchange, который обычно ждёт потери фокуса.
         string newValue = eventArgs.Value?.ToString() ?? string.Empty;
         if (newValue.Length > _targetText.Length)
         {
             newValue = newValue[.._targetText.Length];
         }
 
+        // Общий префикс позволяет отличить новые символы от уже набранных.
+        // При Backspace цикл не выполняется, поэтому удаление не считается
+        // дополнительным нажатием или новой ошибкой.
         int commonPrefixLength = GetCommonPrefixLength(_typedText, newValue);
         for (int index = commonPrefixLength; index < newValue.Length; index++)
         {
@@ -243,6 +264,7 @@ else
         _typedText = newValue;
         _elapsed = DateTime.UtcNow - _startedAt;
 
+        // Заезд заканчивается только при полном посимвольном совпадении.
         if (_typedText == _targetText)
         {
             await CompleteRaceAsync();
@@ -255,6 +277,7 @@ else
         StopTimer();
         _raceStarted = false;
 
+        // RaceResult.Create выполняет формулы скорости и точности.
         _result = RaceResult.Create(
             _dictionary!,
             _targetText.Length,
@@ -264,6 +287,8 @@ else
 
         try
         {
+            // Сохранение выполняется до показа истории, но ошибка диска
+            // не должна лишать пользователя рассчитанного результата.
             await StatisticsRepository.AddAsync(_result);
         }
         catch (IOException exception)
@@ -280,11 +305,13 @@ else
 
     private string GetCharacterClass(int index)
     {
+        // index меньше длины ввода — этот символ уже набран и его можно сравнить.
         if (index < _typedText.Length)
         {
             return _typedText[index] == _targetText[index] ? "correct" : "incorrect";
         }
 
+        // Первый ещё не введённый символ является текущим, остальные ожидают.
         return index == _typedText.Length ? "current" : "pending";
     }
 
@@ -304,6 +331,8 @@ else
             return;
         }
 
+        // По возможности исключаем предыдущее задание, чтобы два одинаковых
+        // текста не выпадали подряд.
         List<string> candidates = _dictionary.Entries
             .Where(entry => entry != _targetText)
             .ToList();
@@ -322,6 +351,7 @@ else
 
     private void StartTimer()
     {
+        // На всякий случай останавливаем старый таймер перед созданием нового.
         StopTimer();
         _timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
         _timerCancellation = new CancellationTokenSource();
@@ -335,11 +365,15 @@ else
             while (await timer.WaitForNextTickAsync(cancellationToken))
             {
                 _elapsed = DateTime.UtcNow - _startedAt;
+
+                // StateHasChanged сообщает Blazor, что таймер на странице
+                // нужно перерисовать с новым значением.
                 await InvokeAsync(StateHasChanged);
             }
         }
         catch (OperationCanceledException)
         {
+            // Отмена — штатный способ остановки фонового цикла, это не ошибка.
         }
     }
 
@@ -354,6 +388,7 @@ else
 
     private static int GetCommonPrefixLength(string first, string second)
     {
+        // Идём слева направо до первого различающегося символа.
         int length = Math.Min(first.Length, second.Length);
         int index = 0;
 
@@ -392,6 +427,8 @@ else
 
     public ValueTask DisposeAsync()
     {
+        // Компонент может быть закрыт во время заезда. Освобождаем таймер,
+        // чтобы фоновая задача не продолжала работать после перехода.
         StopTimer();
         return ValueTask.CompletedTask;
     }

@@ -1,5 +1,7 @@
 namespace TypingTrainer.Models;
 
+// enum ограничивает набор допустимых вариантов и не даёт сохранить
+// произвольную строку вместо известной темы, шрифта или интервала.
 public enum AppTheme
 {
     Light,
@@ -23,6 +25,8 @@ public enum LineSpacing
 
 public sealed record UserSettings
 {
+    // Этот экземпляр используется, пока пользователь ничего не настраивал
+    // или если файл настроек отсутствует/повреждён.
     public static UserSettings Default { get; } = new();
 
     public int FontSize { get; init; } = 28;

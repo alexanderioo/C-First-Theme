@@ -2,6 +2,8 @@
 @implements IDisposable
 @inject SettingsRepository SettingsRepository
 
+@* Layout — общая рамка всех страниц. @Body заменяется содержимым текущей
+   страницы, а шапка и подвал не дублируются в каждом компоненте. *@
 <div class="app-shell @GetThemeClass()" style="@GetApplicationStyle()">
     <header class="site-header">
         <a class="brand" href="/" aria-label="Клавиши — на главную">
@@ -47,6 +49,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Подписываемся один раз при создании layout, чтобы тема менялась
+        // сразу после сохранения настроек без перезагрузки страницы.
         SettingsRepository.Changed += OnSettingsChanged;
         _settings = await SettingsRepository.GetAsync();
     }
@@ -54,6 +58,9 @@
     private void OnSettingsChanged(UserSettings settings)
     {
         _settings = settings;
+
+        // Событие может прийти не во время обычного цикла рендера Blazor.
+        // InvokeAsync безопасно ставит перерисовку в очередь компонента.
         _ = InvokeAsync(StateHasChanged);
     }
 
@@ -66,6 +73,8 @@
 
     private string GetApplicationStyle()
     {
+        // Настройки переводятся в CSS-переменные. Страница Race использует
+        // их как var(--trainer-font-size) и другие значения.
         string fontFamily = _settings.FontFamily switch
         {
             TrainerFontFamily.Sans => "\"Manrope\", system-ui, sans-serif",
@@ -88,6 +97,8 @@
 
     public void Dispose()
     {
+        // Отписка обязательна: иначе Singleton-сервис продолжит хранить ссылку
+        // на уже закрытый компонент и вызовет утечку памяти.
         SettingsRepository.Changed -= OnSettingsChanged;
     }
 }

@@ -4,6 +4,7 @@ using TypingTrainer.Models;
 
 namespace TypingTrainer.Services;
 
+// Хранит пользовательское оформление и сообщает интерфейсу об изменениях.
 public sealed class SettingsRepository
 {
     private readonly string _filePath;
@@ -19,6 +20,7 @@ public sealed class SettingsRepository
         _filePath = Path.Combine(environment.ContentRootPath, "App_Data", "settings.json");
     }
 
+    // MainLayout подписывается на событие и сразу применяет новую тему.
     public event Action<UserSettings>? Changed;
 
     public async Task<UserSettings> GetAsync()
@@ -51,6 +53,8 @@ public sealed class SettingsRepository
 
     public async Task SaveAsync(UserSettings settings)
     {
+        // Даже если значение пришло не из нашего range, сохраняем только
+        // безопасный диапазон размера текста.
         UserSettings normalized = settings with
         {
             FontSize = Math.Clamp(settings.FontSize, 18, 44)
@@ -62,6 +66,7 @@ public sealed class SettingsRepository
             string? directory = Path.GetDirectoryName(_filePath);
             Directory.CreateDirectory(directory!);
 
+            // Временный файл защищает текущие настройки от частичной записи.
             string temporaryPath = _filePath + ".tmp";
             await using (FileStream stream = File.Create(temporaryPath))
             {
@@ -75,6 +80,8 @@ public sealed class SettingsRepository
             _gate.Release();
         }
 
+        // Событие вызываем после освобождения блокировки: обработчик может
+        // перерисовать UI, не удерживая доступ к файлу.
         Changed?.Invoke(normalized);
     }
 }

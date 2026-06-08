@@ -1,6 +1,8 @@
 @page "/settings"
 @inject SettingsRepository Repository
 
+@* Элементы формы меняют локальную копию _settings. Кнопка сохранения
+   записывает её в JSON, а выбор темы применяется сразу для наглядности. *@
 <PageTitle>Настройки — Клавиши</PageTitle>
 
 <section class="settings-heading">
@@ -120,6 +122,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Если файла ещё нет, репозиторий вернёт UserSettings.Default.
         _settings = await Repository.GetAsync();
     }
 
@@ -127,6 +130,8 @@
     {
         if (int.TryParse(eventArgs.Value?.ToString(), out int fontSize))
         {
+            // record изменяется через with: создаётся новая копия, исходный
+            // объект остаётся неизменным.
             _settings = _settings with { FontSize = fontSize };
             _isSaved = false;
         }
@@ -148,6 +153,9 @@
     {
         _settings = _settings with { Theme = theme };
         _isSaved = false;
+
+        // Тему сохраняем сразу, чтобы MainLayout получил событие Changed
+        // и пользователь мгновенно увидел результат выбора.
         await Repository.SaveAsync(_settings);
     }
 
@@ -167,6 +175,7 @@
 
     private string GetPreviewStyle()
     {
+        // Формируем inline CSS только для карточки предпросмотра.
         string family = _settings.FontFamily switch
         {
             TrainerFontFamily.Sans => "\"Manrope\", system-ui, sans-serif",

@@ -3,6 +3,8 @@ using TypingTrainer.Models;
 
 namespace TypingTrainer.Services;
 
+// Все заезды хранятся одним JSON-массивом. Для учебного локального проекта
+// этого достаточно; при большом объёме данных здесь можно подключить БД.
 public sealed class StatisticsRepository
 {
     private readonly string _filePath;
@@ -35,6 +37,8 @@ public sealed class StatisticsRepository
         await _gate.WaitAsync();
         try
         {
+            // Простой подход read-modify-write: читаем историю, добавляем
+            // завершённый заезд и сохраняем весь список.
             List<RaceResult> results = await LoadUnsafeAsync();
             results.Add(result);
             await SaveUnsafeAsync(results);
@@ -50,6 +54,7 @@ public sealed class StatisticsRepository
         await _gate.WaitAsync();
         try
         {
+            // [] — современный синтаксис C# для пустой коллекции.
             await SaveUnsafeAsync([]);
         }
         finally
@@ -85,6 +90,7 @@ public sealed class StatisticsRepository
         string? directory = Path.GetDirectoryName(_filePath);
         Directory.CreateDirectory(directory!);
 
+        // Запись через .tmp предотвращает повреждение основной истории.
         string temporaryPath = _filePath + ".tmp";
         await using (FileStream stream = File.Create(temporaryPath))
         {

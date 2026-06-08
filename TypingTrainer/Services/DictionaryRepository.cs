@@ -4,9 +4,14 @@ using TypingTrainer.Models;
 
 namespace TypingTrainer.Services;
 
+// Репозиторий изолирует работу с JSON от страниц. Компонентам не нужно знать,
+// где находится файл и как именно он читается или перезаписывается.
 public sealed class DictionaryRepository
 {
     private readonly string _filePath;
+
+    // Singleton-репозиторий может получить несколько запросов одновременно.
+    // SemaphoreSlim пропускает к файлу только одну операцию за раз.
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
@@ -16,6 +21,7 @@ public sealed class DictionaryRepository
 
     public DictionaryRepository(IWebHostEnvironment environment)
     {
+        // ContentRootPath — папка проекта во время запуска приложения.
         _filePath = Path.Combine(environment.ContentRootPath, "App_Data", "dictionaries.json");
     }
 
@@ -25,6 +31,8 @@ public sealed class DictionaryRepository
         try
         {
             List<TypingDictionary> dictionaries = await LoadUnsafeAsync();
+
+            // Сначала показываем встроенные наборы, затем сортируем по имени.
             return dictionaries
                 .OrderByDescending(dictionary => dictionary.IsBuiltIn)
                 .ThenBy(dictionary => dictionary.Name)
@@ -32,6 +40,8 @@ public sealed class DictionaryRepository
         }
         finally
         {
+            // finally выполняется даже при исключении, поэтому блокировка
+            // обязательно освобождается и следующие запросы не зависнут.
             _gate.Release();
         }
     }
@@ -55,6 +65,7 @@ public sealed class DictionaryRepository
             List<TypingDictionary> dictionaries = await LoadUnsafeAsync();
             int index = dictionaries.FindIndex(item => item.Id == dictionary.Id);
 
+            // Найденный Id означает редактирование, отсутствующий — создание.
             if (index >= 0)
             {
                 dictionaries[index] = dictionary;
@@ -80,6 +91,7 @@ public sealed class DictionaryRepository
             List<TypingDictionary> dictionaries = await LoadUnsafeAsync();
             TypingDictionary? dictionary = dictionaries.FirstOrDefault(item => item.Id == id);
 
+            // Встроенные словари разрешено редактировать, но нельзя удалить.
             if (dictionary is null || dictionary.IsBuiltIn)
             {
                 return false;
@@ -97,6 +109,7 @@ public sealed class DictionaryRepository
 
     private async Task<List<TypingDictionary>> LoadUnsafeAsync()
     {
+        // При первом запуске файла ещё нет: создаём стартовые словари.
         if (!File.Exists(_filePath))
         {
             List<TypingDictionary> defaults = CreateDefaultDictionaries();
@@ -106,6 +119,7 @@ public sealed class DictionaryRepository
 
         try
         {
+            // await using гарантирует закрытие файла после асинхронного чтения.
             await using FileStream stream = File.OpenRead(_filePath);
             return await JsonSerializer.DeserializeAsync<List<TypingDictionary>>(stream, _jsonOptions) ?? [];
         }
@@ -124,6 +138,8 @@ public sealed class DictionaryRepository
         string? directory = Path.GetDirectoryName(_filePath);
         Directory.CreateDirectory(directory!);
 
+        // Сначала пишем во временный файл, затем атомарно заменяем основной.
+        // Так сбой во время записи не оставит наполовину записанный JSON.
         string temporaryPath = _filePath + ".tmp";
         await using (FileStream stream = File.Create(temporaryPath))
         {
@@ -135,6 +151,8 @@ public sealed class DictionaryRepository
 
     private static List<TypingDictionary> CreateDefaultDictionaries()
     {
+        // Постоянные Guid позволяют ссылкам и статистике узнавать встроенные
+        // словари между разными запусками приложения.
         return
         [
             new TypingDictionary
