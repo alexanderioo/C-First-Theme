@@ -7,6 +7,7 @@ public sealed class TypingSession
 {
     public RaceResult? Run(TypingDictionary dictionary, UserSettings settings)
     {
+        // Каждый заезд получает случайное задание из выбранного словаря.
         string targetText = ChooseTargetText(dictionary);
         if (string.IsNullOrWhiteSpace(targetText))
         {
@@ -16,6 +17,7 @@ public sealed class TypingSession
 
         ShowPreparation(dictionary, targetText, settings);
 
+        // ReadKey(intercept: true) читает клавишу, но не печатает её автоматически.
         ConsoleKeyInfo startKey;
         do
         {
@@ -29,6 +31,8 @@ public sealed class TypingSession
 
         RunCountdown(settings.CountdownSeconds);
 
+        // Список хранит текущую строку пользователя посимвольно. Это упрощает
+        // удаление последнего символа и сравнение каждой позиции.
         var typedCharacters = new List<char>(targetText.Length);
         int mistakes = 0;
         int keyPresses = 0;
@@ -51,6 +55,7 @@ public sealed class TypingSession
 
             if (key.Key == ConsoleKey.Backspace)
             {
+                // Ошибка остаётся в счётчике даже после её исправления.
                 if (typedCharacters.Count > 0)
                 {
                     typedCharacters.RemoveAt(typedCharacters.Count - 1);
@@ -64,6 +69,7 @@ public sealed class TypingSession
                 continue;
             }
 
+            // Позиция нового символа равна количеству уже введённых символов.
             char expectedCharacter = targetText[typedCharacters.Count];
             typedCharacters.Add(key.KeyChar);
             keyPresses++;
@@ -75,6 +81,8 @@ public sealed class TypingSession
         }
 
         stopwatch.Stop();
+        // Формулы вынесены в RaceResult.Create, поэтому класс сессии не
+        // дублирует вычисления скорости и точности.
         RaceResult result = RaceResult.Create(
             dictionary,
             targetText.Length,
@@ -185,6 +193,8 @@ public sealed class TypingSession
     {
         int column = 0;
 
+        // Каждый символ печатается отдельно, потому что его цвет зависит
+        // от соответствующего символа, введённого пользователем.
         for (int index = 0; index < targetText.Length; index++)
         {
             if (column >= width && targetText[index] != ' ')

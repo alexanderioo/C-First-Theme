@@ -49,6 +49,7 @@ public sealed class DictionaryMenu
 
     public async Task<TypingDictionary?> SelectAsync(string heading)
     {
+        // IReadOnlyList не позволяет меню случайно изменить коллекцию репозитория.
         IReadOnlyList<TypingDictionary> dictionaries = await _repository.GetAllAsync();
 
         ConsoleTheme.Clear();
@@ -99,6 +100,7 @@ public sealed class DictionaryMenu
         string difficulty = SelectDifficulty("Средняя");
         List<string> entries = ReadEntries();
 
+        // required-свойства модели необходимо заполнить при создании объекта.
         var dictionary = new TypingDictionary
         {
             Name = name,
@@ -150,6 +152,8 @@ public sealed class DictionaryMenu
             entries = ReadEntries();
         }
 
+        // record удобно изменять выражением with: создаётся копия со старыми
+        // Id/CreatedAt/IsBuiltIn и только перечисленными новыми значениями.
         TypingDictionary updated = dictionary with
         {
             Name = name,
@@ -217,6 +221,7 @@ public sealed class DictionaryMenu
                 }
 
                 string normalized = entry.Trim();
+                // Не добавляем полностью совпадающие задания дважды.
                 if (!entries.Contains(normalized, StringComparer.Ordinal))
                 {
                     entries.Add(normalized);

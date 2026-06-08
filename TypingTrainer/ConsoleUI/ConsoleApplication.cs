@@ -4,7 +4,6 @@ namespace TypingTrainer.ConsoleUI;
 
 public sealed class ConsoleApplication
 {
-    private readonly DictionaryRepository _dictionaryRepository;
     private readonly SettingsRepository _settingsRepository;
     private readonly StatisticsRepository _statisticsRepository;
     private readonly DictionaryMenu _dictionaryMenu;
@@ -17,7 +16,6 @@ public sealed class ConsoleApplication
         SettingsRepository settingsRepository,
         StatisticsRepository statisticsRepository)
     {
-        _dictionaryRepository = dictionaryRepository;
         _settingsRepository = settingsRepository;
         _statisticsRepository = statisticsRepository;
         _dictionaryMenu = new DictionaryMenu(dictionaryRepository);
@@ -27,9 +25,11 @@ public sealed class ConsoleApplication
 
     public async Task RunAsync()
     {
+        // Перед первым выводом читаем сохранённую тему и применяем её к Terminal.
         Models.UserSettings settings = await _settingsRepository.GetAsync();
         ConsoleTheme.Apply(settings);
 
+        // Главное меню работает в цикле, пока пользователь не выберет выход.
         bool isRunning = true;
         while (isRunning)
         {
@@ -74,6 +74,7 @@ public sealed class ConsoleApplication
 
     private async Task StartTrainingAsync()
     {
+        // DictionaryMenu возвращает выбранный объект или null при пункте "Назад".
         Models.TypingDictionary? dictionary =
             await _dictionaryMenu.SelectAsync("Выбор словаря");
 
@@ -85,6 +86,7 @@ public sealed class ConsoleApplication
         Models.UserSettings settings = await _settingsRepository.GetAsync();
         ConsoleTheme.Apply(settings);
 
+        // TypingSession отвечает только за сам набор и вычисление результата.
         Models.RaceResult? result = _typingSession.Run(dictionary, settings);
         if (result is null)
         {
@@ -95,6 +97,8 @@ public sealed class ConsoleApplication
 
         try
         {
+            // Сохранение отделено от тренировки: при ошибке диска пользователь
+            // всё равно увидит рассчитанные скорость и точность.
             await _statisticsRepository.AddAsync(result);
         }
         catch (IOException exception)

@@ -18,6 +18,7 @@ public sealed class StatisticsMenu
 
         while (isOpen)
         {
+            // Новые заезды выводятся первыми в таблице истории.
             IReadOnlyList<RaceResult> results = (await _repository.GetAllAsync())
                 .OrderByDescending(result => result.CompletedAt)
                 .ToList();
@@ -97,6 +98,7 @@ public sealed class StatisticsMenu
 
     private static void ShowDictionaryStatistics(IReadOnlyCollection<RaceResult> results)
     {
+        // Группировка и средние значения рассчитываются моделью, меню их выводит.
         IReadOnlyList<DictionaryStatistics> statistics =
             DictionaryStatistics.From(results);
 

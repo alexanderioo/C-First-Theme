@@ -14,6 +14,8 @@ public sealed class SettingsMenu
 
     public async Task ShowAsync()
     {
+        // Настройки изменяются в локальной переменной record и после каждого
+        // действия записываются в settings.json.
         UserSettings settings = await _repository.GetAsync();
         bool isOpen = true;
 
@@ -37,6 +39,7 @@ public sealed class SettingsMenu
                     await SaveAsync(settings);
                     break;
                 case 2:
+                    // Инвертируем логическое значение true/false.
                     settings = settings with { ShowLiveMetrics = !settings.ShowLiveMetrics };
                     await SaveAsync(settings);
                     break;
