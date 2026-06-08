@@ -1,0 +1,227 @@
+@page "/settings"
+@inject SettingsRepository Repository
+
+<PageTitle>Настройки — Клавиши</PageTitle>
+
+<section class="settings-heading">
+    <span class="eyebrow">Персонализация</span>
+    <h1>Настройте тренажёр под себя</h1>
+    <p>Изменения сохраняются на этом компьютере и сразу применяются к интерфейсу.</p>
+</section>
+
+<div class="settings-layout">
+    <section class="settings-card page-card">
+        <div class="setting-group">
+            <div class="setting-title">
+                <div>
+                    <h2>Размер текста</h2>
+                    <p>Размер текста во время заезда</p>
+                </div>
+                <strong>@_settings.FontSize px</strong>
+            </div>
+            <input class="range-input" type="range" min="18" max="44" step="2"
+                   value="@_settings.FontSize" @oninput="ChangeFontSize" />
+            <div class="range-labels"><span>Меньше</span><span>Больше</span></div>
+        </div>
+
+        <div class="setting-group">
+            <div class="setting-title">
+                <div>
+                    <h2>Шрифт</h2>
+                    <p>Выберите удобную форму символов</p>
+                </div>
+            </div>
+            <div class="option-grid three">
+                @foreach (TrainerFontFamily font in Enum.GetValues<TrainerFontFamily>())
+                {
+                    <button type="button"
+                            class="@GetOptionClass(_settings.FontFamily == font)"
+                            @onclick="() => SetFont(font)">
+                        <strong class="@GetFontPreviewClass(font)">Aa Бб 123</strong>
+                        <span>@GetFontName(font)</span>
+                    </button>
+                }
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <div class="setting-title">
+                <div>
+                    <h2>Интервал между строками</h2>
+                    <p>Влияет на плотность длинных текстов</p>
+                </div>
+            </div>
+            <div class="segmented-control">
+                @foreach (LineSpacing spacing in Enum.GetValues<LineSpacing>())
+                {
+                    <button type="button"
+                            class="@(_settings.LineSpacing == spacing ? "active" : string.Empty)"
+                            @onclick="() => SetSpacing(spacing)">
+                        @GetSpacingName(spacing)
+                    </button>
+                }
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <div class="setting-title">
+                <div>
+                    <h2>Цветовая тема</h2>
+                    <p>Фон и контраст всего приложения</p>
+                </div>
+            </div>
+            <div class="option-grid three">
+                @foreach (AppTheme theme in Enum.GetValues<AppTheme>())
+                {
+                    <button type="button"
+                            class="@GetOptionClass(_settings.Theme == theme)"
+                            @onclick="() => SetThemeAsync(theme)">
+                        <span class="theme-swatch @GetThemePreviewClass(theme)"></span>
+                        <span>@GetThemeName(theme)</span>
+                    </button>
+                }
+            </div>
+        </div>
+
+        <label class="toggle-row">
+            <span>
+                <strong>Живые показатели</strong>
+                <small>Показывать скорость и точность во время набора</small>
+            </span>
+            <input type="checkbox" checked="@_settings.ShowLiveMetrics" @onchange="ChangeLiveMetrics" />
+            <span class="toggle" aria-hidden="true"></span>
+        </label>
+
+        <div class="settings-actions">
+            <button class="button button-primary" type="button" @onclick="SaveAsync" disabled="@_isSaving">
+                @(_isSaving ? "Сохраняем..." : "Сохранить настройки")
+            </button>
+            @if (_isSaved)
+            {
+                <span class="saved-message">Настройки сохранены</span>
+            }
+        </div>
+    </section>
+
+    <aside class="preview-card page-card">
+        <span class="eyebrow">Предпросмотр</span>
+        <div class="preview-text" style="@GetPreviewStyle()">
+            <span>Точность</span> приходит раньше скорости.
+        </div>
+        <div class="preview-progress"><span></span></div>
+        <small>Так будет выглядеть текст в заезде</small>
+    </aside>
+</div>
+
+@code {
+    private UserSettings _settings = UserSettings.Default;
+    private bool _isSaving;
+    private bool _isSaved;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _settings = await Repository.GetAsync();
+    }
+
+    private void ChangeFontSize(ChangeEventArgs eventArgs)
+    {
+        if (int.TryParse(eventArgs.Value?.ToString(), out int fontSize))
+        {
+            _settings = _settings with { FontSize = fontSize };
+            _isSaved = false;
+        }
+    }
+
+    private void SetFont(TrainerFontFamily font)
+    {
+        _settings = _settings with { FontFamily = font };
+        _isSaved = false;
+    }
+
+    private void SetSpacing(LineSpacing spacing)
+    {
+        _settings = _settings with { LineSpacing = spacing };
+        _isSaved = false;
+    }
+
+    private async Task SetThemeAsync(AppTheme theme)
+    {
+        _settings = _settings with { Theme = theme };
+        _isSaved = false;
+        await Repository.SaveAsync(_settings);
+    }
+
+    private void ChangeLiveMetrics(ChangeEventArgs eventArgs)
+    {
+        _settings = _settings with { ShowLiveMetrics = eventArgs.Value as bool? ?? false };
+        _isSaved = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        _isSaving = true;
+        await Repository.SaveAsync(_settings);
+        _isSaving = false;
+        _isSaved = true;
+    }
+
+    private string GetPreviewStyle()
+    {
+        string family = _settings.FontFamily switch
+        {
+            TrainerFontFamily.Sans => "\"Manrope\", system-ui, sans-serif",
+            TrainerFontFamily.Serif => "Georgia, serif",
+            _ => "\"Source Code Pro\", monospace"
+        };
+
+        double lineHeight = _settings.LineSpacing switch
+        {
+            LineSpacing.Compact => 1.4,
+            LineSpacing.Airy => 2,
+            _ => 1.7
+        };
+
+        return
+            $"font-size: {_settings.FontSize}px; " +
+            $"font-family: {family}; " +
+            $"line-height: {lineHeight.ToString(CultureInfo.InvariantCulture)};";
+    }
+
+    private static string GetOptionClass(bool isSelected) =>
+        isSelected ? "option-card selected" : "option-card";
+
+    private static string GetFontPreviewClass(TrainerFontFamily font) => font switch
+    {
+        TrainerFontFamily.Sans => "font-sans",
+        TrainerFontFamily.Serif => "font-serif",
+        _ => "font-mono"
+    };
+
+    private static string GetFontName(TrainerFontFamily font) => font switch
+    {
+        TrainerFontFamily.Sans => "Без засечек",
+        TrainerFontFamily.Serif => "С засечками",
+        _ => "Моноширинный"
+    };
+
+    private static string GetSpacingName(LineSpacing spacing) => spacing switch
+    {
+        LineSpacing.Compact => "Компактный",
+        LineSpacing.Airy => "Свободный",
+        _ => "Обычный"
+    };
+
+    private static string GetThemeName(AppTheme theme) => theme switch
+    {
+        AppTheme.Dark => "Тёмная",
+        AppTheme.Contrast => "Контрастная",
+        _ => "Светлая"
+    };
+
+    private static string GetThemePreviewClass(AppTheme theme) => theme switch
+    {
+        AppTheme.Dark => "dark",
+        AppTheme.Contrast => "contrast",
+        _ => "light"
+    };
+}

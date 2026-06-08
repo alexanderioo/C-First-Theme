@@ -33,6 +33,36 @@ body {
     margin: 0;
 }
 
+.theme-dark {
+    --paper: #17191f;
+    --surface: #23262e;
+    --surface-soft: #2d3039;
+    --ink: #f3f1eb;
+    --muted: #a6a9b0;
+    --line: #393d47;
+    --accent: #f08a50;
+    --accent-strong: #ff9b63;
+    --accent-soft: #4b3025;
+    --success: #66c696;
+    --danger: #ff7a75;
+    --shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+}
+
+.theme-contrast {
+    --paper: #ffffff;
+    --surface: #ffffff;
+    --surface-soft: #eeeeee;
+    --ink: #000000;
+    --muted: #333333;
+    --line: #000000;
+    --accent: #005fcc;
+    --accent-strong: #004a9f;
+    --accent-soft: #dcecff;
+    --success: #006b3c;
+    --danger: #b00020;
+    --shadow: 0 0 0 2px #000000;
+}
+
 button,
 input,
 textarea,

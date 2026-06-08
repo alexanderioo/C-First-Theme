@@ -7,6 +7,7 @@ builder.Services
     .AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddSingleton<DictionaryRepository>();
+builder.Services.AddSingleton<SettingsRepository>();
 
 var app = builder.Build();
 

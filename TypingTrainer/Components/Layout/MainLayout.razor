@@ -1,6 +1,8 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@inject SettingsRepository SettingsRepository
 
-<div class="app-shell">
+<div class="app-shell @GetThemeClass()" style="@GetApplicationStyle()">
     <header class="site-header">
         <a class="brand" href="/" aria-label="Клавиши — на главную">
             <span class="brand-mark" aria-hidden="true">
@@ -39,3 +41,53 @@
     <a href="." class="reload">Перезагрузить</a>
     <button type="button" class="dismiss">Закрыть</button>
 </div>
+
+@code {
+    private UserSettings _settings = UserSettings.Default;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SettingsRepository.Changed += OnSettingsChanged;
+        _settings = await SettingsRepository.GetAsync();
+    }
+
+    private void OnSettingsChanged(UserSettings settings)
+    {
+        _settings = settings;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private string GetThemeClass() => _settings.Theme switch
+    {
+        AppTheme.Dark => "theme-dark",
+        AppTheme.Contrast => "theme-contrast",
+        _ => "theme-light"
+    };
+
+    private string GetApplicationStyle()
+    {
+        string fontFamily = _settings.FontFamily switch
+        {
+            TrainerFontFamily.Sans => "\"Manrope\", system-ui, sans-serif",
+            TrainerFontFamily.Serif => "Georgia, \"Times New Roman\", serif",
+            _ => "\"Source Code Pro\", monospace"
+        };
+
+        double lineHeight = _settings.LineSpacing switch
+        {
+            LineSpacing.Compact => 1.4,
+            LineSpacing.Airy => 2.0,
+            _ => 1.7
+        };
+
+        return
+            $"--trainer-font-size: {_settings.FontSize}px; " +
+            $"--trainer-font-family: {fontFamily}; " +
+            $"--trainer-line-height: {lineHeight.ToString(CultureInfo.InvariantCulture)};";
+    }
+
+    public void Dispose()
+    {
+        SettingsRepository.Changed -= OnSettingsChanged;
+    }
+}
