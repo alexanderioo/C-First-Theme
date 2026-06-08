@@ -8,6 +8,9 @@ public sealed class ConsoleApplication
     private readonly SettingsRepository _settingsRepository;
     private readonly StatisticsRepository _statisticsRepository;
     private readonly DictionaryMenu _dictionaryMenu;
+    private readonly SettingsMenu _settingsMenu;
+    private readonly StatisticsMenu _statisticsMenu;
+    private readonly TypingSession _typingSession = new();
 
     public ConsoleApplication(
         DictionaryRepository dictionaryRepository,
@@ -18,6 +21,8 @@ public sealed class ConsoleApplication
         _settingsRepository = settingsRepository;
         _statisticsRepository = statisticsRepository;
         _dictionaryMenu = new DictionaryMenu(dictionaryRepository);
+        _settingsMenu = new SettingsMenu(settingsRepository);
+        _statisticsMenu = new StatisticsMenu(statisticsRepository);
     }
 
     public async Task RunAsync()
@@ -42,16 +47,16 @@ public sealed class ConsoleApplication
             switch (choice)
             {
                 case 1:
-                    await ShowComingSoonAsync("Тренировка");
+                    await StartTrainingAsync();
                     break;
                 case 2:
                     await _dictionaryMenu.ShowAsync();
                     break;
                 case 3:
-                    await ShowComingSoonAsync("Статистика");
+                    await _statisticsMenu.ShowAsync();
                     break;
                 case 4:
-                    await ShowComingSoonAsync("Настройки");
+                    await _settingsMenu.ShowAsync();
                     break;
                 case 5:
                     ShowAbout();
@@ -67,13 +72,41 @@ public sealed class ConsoleApplication
         ConsoleTheme.Reset();
     }
 
-    private static Task ShowComingSoonAsync(string section)
+    private async Task StartTrainingAsync()
     {
-        ConsoleTheme.Clear();
-        ConsoleTheme.Heading(section);
-        Console.WriteLine("Раздел подключается на следующем этапе.");
+        Models.TypingDictionary? dictionary =
+            await _dictionaryMenu.SelectAsync("Выбор словаря");
+
+        if (dictionary is null)
+        {
+            return;
+        }
+
+        Models.UserSettings settings = await _settingsRepository.GetAsync();
+        ConsoleTheme.Apply(settings);
+
+        Models.RaceResult? result = _typingSession.Run(dictionary, settings);
+        if (result is null)
+        {
+            ConsoleTheme.Warning("Тренировка прервана.");
+            ConsoleInput.WaitForEnter();
+            return;
+        }
+
+        try
+        {
+            await _statisticsRepository.AddAsync(result);
+        }
+        catch (IOException exception)
+        {
+            ConsoleTheme.Warning($"Результат показан, но не сохранён: {exception.Message}");
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            ConsoleTheme.Warning($"Результат показан, но не сохранён: {exception.Message}");
+        }
+
         ConsoleInput.WaitForEnter();
-        return Task.CompletedTask;
     }
 
     private static void ShowAbout()

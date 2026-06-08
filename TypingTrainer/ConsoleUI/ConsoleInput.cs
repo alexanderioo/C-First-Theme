@@ -56,6 +56,29 @@ public static class ConsoleInput
                string.Equals(value, "y", StringComparison.OrdinalIgnoreCase);
     }
 
+    public static int ReadNumber(string prompt, int minimum, int maximum, int currentValue)
+    {
+        while (true)
+        {
+            Console.Write($"{prompt} [{currentValue}]: ");
+            string? value = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return currentValue;
+            }
+
+            if (int.TryParse(value, out int number) &&
+                number >= minimum &&
+                number <= maximum)
+            {
+                return number;
+            }
+
+            ConsoleTheme.Error($"Введите число от {minimum} до {maximum}.");
+        }
+    }
+
     public static void WaitForEnter()
     {
         Console.WriteLine();
