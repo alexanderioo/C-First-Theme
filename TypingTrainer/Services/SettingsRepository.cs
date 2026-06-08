@@ -15,13 +15,10 @@ public sealed class SettingsRepository
         Converters = { new JsonStringEnumConverter() }
     };
 
-    public SettingsRepository(IWebHostEnvironment environment)
+    public SettingsRepository(string dataDirectory)
     {
-        _filePath = Path.Combine(environment.ContentRootPath, "App_Data", "settings.json");
+        _filePath = Path.Combine(dataDirectory, "settings.json");
     }
-
-    // MainLayout подписывается на событие и сразу применяет новую тему.
-    public event Action<UserSettings>? Changed;
 
     public async Task<UserSettings> GetAsync()
     {
@@ -53,11 +50,11 @@ public sealed class SettingsRepository
 
     public async Task SaveAsync(UserSettings settings)
     {
-        // Даже если значение пришло не из нашего range, сохраняем только
-        // безопасный диапазон размера текста.
+        // Ограничиваем значения, даже если JSON был изменён вручную.
         UserSettings normalized = settings with
         {
-            FontSize = Math.Clamp(settings.FontSize, 18, 44)
+            TextWidth = Math.Clamp(settings.TextWidth, 40, 120),
+            CountdownSeconds = Math.Clamp(settings.CountdownSeconds, 0, 5)
         };
 
         await _gate.WaitAsync();
@@ -79,9 +76,5 @@ public sealed class SettingsRepository
         {
             _gate.Release();
         }
-
-        // Событие вызываем после освобождения блокировки: обработчик может
-        // перерисовать UI, не удерживая доступ к файлу.
-        Changed?.Invoke(normalized);
     }
 }

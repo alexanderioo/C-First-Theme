@@ -14,9 +14,9 @@ public sealed class StatisticsRepository
         WriteIndented = true
     };
 
-    public StatisticsRepository(IWebHostEnvironment environment)
+    public StatisticsRepository(string dataDirectory)
     {
-        _filePath = Path.Combine(environment.ContentRootPath, "App_Data", "statistics.json");
+        _filePath = Path.Combine(dataDirectory, "statistics.json");
     }
 
     public async Task<IReadOnlyList<RaceResult>> GetAllAsync()

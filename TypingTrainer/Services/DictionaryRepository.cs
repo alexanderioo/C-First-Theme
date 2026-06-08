@@ -19,10 +19,9 @@ public sealed class DictionaryRepository
         Converters = { new JsonStringEnumConverter() }
     };
 
-    public DictionaryRepository(IWebHostEnvironment environment)
+    public DictionaryRepository(string dataDirectory)
     {
-        // ContentRootPath — папка проекта во время запуска приложения.
-        _filePath = Path.Combine(environment.ContentRootPath, "App_Data", "dictionaries.json");
+        _filePath = Path.Combine(dataDirectory, "dictionaries.json");
     }
 
     public async Task<IReadOnlyList<TypingDictionary>> GetAllAsync()
