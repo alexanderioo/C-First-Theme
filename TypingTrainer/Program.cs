@@ -1,15 +1,24 @@
-using System.Text;
-using TypingTrainer;
-using TypingTrainer.Services;
+using TypingTrainer.Components;
 
-Console.InputEncoding = Encoding.UTF8;
-Console.OutputEncoding = Encoding.UTF8;
-Console.Title = "Тренажёр набора текста";
+var builder = WebApplication.CreateBuilder(args);
 
-var repository = new JsonResultRepository();
-var application = new TypingTrainerApplication(
-    new TextProvider(),
-    repository,
-    new TypingSession());
+builder.Services
+    .AddRazorComponents()
+    .AddInteractiveServerComponents();
 
-application.Run();
+var app = builder.Build();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+app.UseAntiforgery();
+app.MapStaticAssets();
+
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
+
+app.Run();

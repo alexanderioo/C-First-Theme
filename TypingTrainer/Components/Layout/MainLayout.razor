@@ -1,0 +1,41 @@
+@inherits LayoutComponentBase
+
+<div class="app-shell">
+    <header class="site-header">
+        <a class="brand" href="/" aria-label="Клавиши — на главную">
+            <span class="brand-mark" aria-hidden="true">
+                <span></span><span></span><span></span>
+            </span>
+            <span>
+                <strong>Клавиши</strong>
+                <small>тренажёр печати</small>
+            </span>
+        </a>
+
+        <nav class="main-nav" aria-label="Главное меню">
+            <NavLink href="/" Match="NavLinkMatch.All">Тренировка</NavLink>
+            <NavLink href="/dictionaries">Словари</NavLink>
+            <NavLink href="/statistics">Статистика</NavLink>
+        </nav>
+
+        <a class="header-action" href="/settings" aria-label="Открыть настройки">
+            <span aria-hidden="true">Aa</span>
+            Настройки
+        </a>
+    </header>
+
+    <main class="main-content">
+        @Body
+    </main>
+
+    <footer class="site-footer">
+        <span>Учебный проект на C# и Blazor</span>
+        <span>Точность важнее спешки</span>
+    </footer>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Соединение с приложением потеряно.
+    <a href="." class="reload">Перезагрузить</a>
+    <button type="button" class="dismiss">Закрыть</button>
+</div>
