@@ -1,0 +1,267 @@
+@page "/statistics"
+@inject StatisticsRepository Repository
+
+<PageTitle>Статистика — Клавиши</PageTitle>
+
+<section class="statistics-heading">
+    <div>
+        <span class="eyebrow">Личный прогресс</span>
+        <h1>Статистика заездов</h1>
+        <p>Результаты сохраняются автоматически после каждого завершённого текста.</p>
+    </div>
+    @if (_results.Count > 0)
+    {
+        <button class="clear-button" type="button" @onclick="ToggleClearConfirmation">
+            @(_confirmClear ? "Отменить очистку" : "Очистить историю")
+        </button>
+    }
+</section>
+
+@if (_isLoading)
+{
+    <section class="empty-state page-card">
+        <p>Собираем статистику...</p>
+    </section>
+}
+else if (_results.Count == 0)
+{
+    <section class="empty-statistics page-card">
+        <span class="empty-icon" aria-hidden="true">↗</span>
+        <span class="eyebrow">Пока пусто</span>
+        <h2>Завершите первый заезд</h2>
+        <p>Здесь появятся скорость, точность, рекорды и история тренировок.</p>
+        <a class="button button-primary" href="/dictionaries">Выбрать словарь</a>
+    </section>
+}
+else
+{
+    @if (_confirmClear)
+    {
+        <div class="clear-confirmation">
+            <span>Удалить всю историю? Это действие нельзя отменить.</span>
+            <button type="button" @onclick="ClearAsync">Да, удалить</button>
+        </div>
+    }
+
+    <section class="summary-grid">
+        <article class="summary-card primary page-card">
+            <span>Лучший результат</span>
+            <strong>@_summary.BestCharactersPerMinute</strong>
+            <small>знаков в минуту</small>
+        </article>
+        <article class="summary-card page-card">
+            <span>Средняя скорость</span>
+            <strong>@_summary.AverageCharactersPerMinute.ToString("F0")</strong>
+            <small>знаков в минуту</small>
+        </article>
+        <article class="summary-card page-card">
+            <span>Средняя точность</span>
+            <strong>@_summary.AverageAccuracy.ToString("F1")%</strong>
+            <small>за @_summary.RaceCount @GetRaceWord(_summary.RaceCount)</small>
+        </article>
+        <article class="summary-card page-card">
+            <span>Время практики</span>
+            <strong>@FormatPracticeTime(_summary.TotalPracticeTime)</strong>
+            <small>@_summary.TotalCharacters.ToString("N0") символов</small>
+        </article>
+    </section>
+
+    <section class="dashboard-grid">
+        <article class="chart-card page-card">
+            <div class="card-heading">
+                <div>
+                    <h2>Последние заезды</h2>
+                    <p>Скорость в знаках за минуту</p>
+                </div>
+                <span>Макс. @_chartMaximum</span>
+            </div>
+
+            <div class="bar-chart">
+                @foreach (RaceResult result in _chartResults)
+                {
+                    double height = Math.Max(8, result.CharactersPerMinute * 100.0 / _chartMaximum);
+                    <div class="bar-column" title="@($"{result.CharactersPerMinute} зн/мин · {result.DictionaryName}")">
+                        <strong>@result.CharactersPerMinute</strong>
+                        <div class="bar-track">
+                            <span style="@($"height: {height.ToString("F1", CultureInfo.InvariantCulture)}%")"></span>
+                        </div>
+                        <small>@result.CompletedAt.ToLocalTime().ToString("dd.MM")</small>
+                    </div>
+                }
+            </div>
+        </article>
+
+        <aside class="insight-card page-card">
+            <span class="eyebrow">Ваш профиль</span>
+            <h2>@GetProfileTitle()</h2>
+            <p>@GetProfileDescription()</p>
+            <dl>
+                <div><dt>Любимый словарь</dt><dd>@_summary.FavoriteDictionary</dd></div>
+                <div><dt>Всего заездов</dt><dd>@_summary.RaceCount</dd></div>
+                <div><dt>Лучший темп</dt><dd>@_summary.BestCharactersPerMinute зн/мин</dd></div>
+            </dl>
+        </aside>
+    </section>
+
+    <section class="table-card page-card">
+        <div class="card-heading">
+            <div>
+                <h2>Результаты по словарям</h2>
+                <p>Сравнение режимов тренировки</p>
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Словарь</th>
+                        <th>Заезды</th>
+                        <th>Средняя скорость</th>
+                        <th>Рекорд</th>
+                        <th>Точность</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (DictionaryStatistics item in _dictionaryStatistics)
+                    {
+                        <tr>
+                            <td><a href="@($"/race/{item.DictionaryId}")">@item.DictionaryName</a></td>
+                            <td>@item.RaceCount</td>
+                            <td>@item.AverageCharactersPerMinute.ToString("F0") зн/мин</td>
+                            <td>@item.BestCharactersPerMinute зн/мин</td>
+                            <td>@item.AverageAccuracy.ToString("F1")%</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="table-card page-card">
+        <div class="card-heading">
+            <div>
+                <h2>История</h2>
+                <p>Последние 20 завершённых заездов</p>
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Словарь</th>
+                        <th>Скорость</th>
+                        <th>Точность</th>
+                        <th>Ошибки</th>
+                        <th>Время</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (RaceResult result in _results.Take(20))
+                    {
+                        <tr>
+                            <td>@result.CompletedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                            <td>@result.DictionaryName</td>
+                            <td><strong>@result.CharactersPerMinute зн/мин</strong></td>
+                            <td>@result.Accuracy.ToString("F1")%</td>
+                            <td>@result.Mistakes</td>
+                            <td>@TimeSpan.FromSeconds(result.DurationSeconds).ToString(@"mm\:ss")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+
+@code {
+    private IReadOnlyList<RaceResult> _results = [];
+    private IReadOnlyList<RaceResult> _chartResults = [];
+    private IReadOnlyList<DictionaryStatistics> _dictionaryStatistics = [];
+    private StatisticsSummary _summary = StatisticsSummary.Empty;
+    private bool _isLoading = true;
+    private bool _confirmClear;
+    private int _chartMaximum = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _results = (await Repository.GetAllAsync())
+            .OrderByDescending(result => result.CompletedAt)
+            .ToList();
+        _summary = StatisticsSummary.From(_results);
+        _dictionaryStatistics = DictionaryStatistics.From(_results);
+        _chartResults = _results.Take(10).Reverse().ToList();
+        _chartMaximum = Math.Max(1, _chartResults.Select(result => result.CharactersPerMinute).DefaultIfEmpty(1).Max());
+        _isLoading = false;
+    }
+
+    private void ToggleClearConfirmation()
+    {
+        _confirmClear = !_confirmClear;
+    }
+
+    private async Task ClearAsync()
+    {
+        await Repository.ClearAsync();
+        _confirmClear = false;
+        await LoadAsync();
+    }
+
+    private string GetProfileTitle()
+    {
+        return _summary.AverageAccuracy switch
+        {
+            >= 98 => "Точный набор",
+            >= 95 => "Уверенный темп",
+            >= 90 => "Хороший старт",
+            _ => "Есть куда расти"
+        };
+    }
+
+    private string GetProfileDescription()
+    {
+        return _summary.AverageAccuracy switch
+        {
+            >= 98 => "Вы почти не ошибаетесь. Можно постепенно повышать скорость.",
+            >= 95 => "Баланс скорости и точности уже хороший. Продолжайте регулярные тренировки.",
+            >= 90 => "Сбавьте темп на сложных местах и следите за точностью.",
+            _ => "Сосредоточьтесь на правильных нажатиях, не пытаясь печатать слишком быстро."
+        };
+    }
+
+    private static string FormatPracticeTime(TimeSpan time)
+    {
+        if (time.TotalHours >= 1)
+        {
+            return $"{(int)time.TotalHours} ч {time.Minutes} мин";
+        }
+
+        return time.TotalMinutes >= 1
+            ? $"{(int)time.TotalMinutes} мин"
+            : $"{Math.Max(1, (int)time.TotalSeconds)} сек";
+    }
+
+    private static string GetRaceWord(int count)
+    {
+        int lastTwoDigits = count % 100;
+        int lastDigit = count % 10;
+
+        if (lastTwoDigits is >= 11 and <= 14)
+        {
+            return "заездов";
+        }
+
+        return lastDigit switch
+        {
+            1 => "заезд",
+            2 or 3 or 4 => "заезда",
+            _ => "заездов"
+        };
+    }
+}

@@ -8,6 +8,7 @@ builder.Services
     .AddInteractiveServerComponents();
 builder.Services.AddSingleton<DictionaryRepository>();
 builder.Services.AddSingleton<SettingsRepository>();
+builder.Services.AddSingleton<StatisticsRepository>();
 
 var app = builder.Build();
 

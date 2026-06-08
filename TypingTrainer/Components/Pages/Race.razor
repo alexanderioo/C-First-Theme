@@ -2,6 +2,7 @@
 @implements IAsyncDisposable
 @inject DictionaryRepository DictionaryRepository
 @inject SettingsRepository SettingsRepository
+@inject StatisticsRepository StatisticsRepository
 
 <PageTitle>@(_dictionary is null ? "Заезд" : _dictionary.Name) — Клавиши</PageTitle>
 
@@ -53,6 +54,11 @@ else if (_result is not null)
             <a class="button button-secondary" href="/dictionaries">Другой словарь</a>
             <a class="text-action" href="/statistics">Открыть статистику →</a>
         </div>
+
+        @if (!string.IsNullOrWhiteSpace(_saveWarning))
+        {
+            <p class="save-warning">@_saveWarning</p>
+        }
     </section>
 }
 else
@@ -160,6 +166,7 @@ else
     private bool _isLoading = true;
     private bool _raceStarted;
     private RaceResult? _result;
+    private string? _saveWarning;
 
     private double ProgressPercentage => _targetText.Length == 0
         ? 0
@@ -199,6 +206,7 @@ else
         _keyPresses = 0;
         _elapsed = TimeSpan.Zero;
         _result = null;
+        _saveWarning = null;
         _raceStarted = true;
         _startedAt = DateTime.UtcNow;
         StartTimer();
@@ -253,6 +261,19 @@ else
             _elapsed,
             _mistakes,
             _keyPresses);
+
+        try
+        {
+            await StatisticsRepository.AddAsync(_result);
+        }
+        catch (IOException exception)
+        {
+            _saveWarning = $"Результат показан, но не сохранён: {exception.Message}";
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            _saveWarning = $"Результат показан, но не сохранён: {exception.Message}";
+        }
 
         await InvokeAsync(StateHasChanged);
     }

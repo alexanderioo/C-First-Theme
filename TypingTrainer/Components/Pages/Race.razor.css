@@ -266,6 +266,17 @@
     text-decoration: none;
 }
 
+.save-warning {
+    max-width: 620px;
+    margin: 22px auto 0;
+    padding: 12px 15px;
+    border-radius: 10px;
+    color: #8d2525;
+    background: #fbe4e4;
+    font-size: 0.72rem;
+    text-align: center;
+}
+
 @media (max-width: 740px) {
     .race-topline {
         grid-template-columns: 1fr auto;
